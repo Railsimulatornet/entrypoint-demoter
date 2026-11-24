@@ -20,6 +20,15 @@ docker run --rm  entrypoint-demoter-test --version
 assert "default" "uid=0(root) gid=0(root) groups=0(root)" "$(docker run --rm  entrypoint-demoter-test id)"
 assert "run 1000" "uid=1000 gid=0(root) groups=0(root)" "$(docker run --rm -u 1000 entrypoint-demoter-test id)"
 assert "run 1000:1000" "uid=1000 gid=1000 groups=1000" "$(docker run --rm -u 1000:1000 entrypoint-demoter-test id)"
+
+# Short-lived subprocesses must not lose their output on exit.
+for attempt in {1..20}; do
+  output=$(docker run --rm -u 1000 entrypoint-demoter-test printf '%s' 'complete')
+  assert "short output $attempt" "complete" "$output"
+done
+output=$(docker run --rm -u 1000 entrypoint-demoter-test sh -c 'head -c 131072 /dev/zero | tr "\000" x')
+assert "long output length" "131072" "${#output}"
+assert "long output content" "" "${output//x/}"
 assert "match" "uid=1024(test1024) gid=100(users) groups=100(users)" "$(docker run --rm entrypoint-demoter-test --match /test/test1024 id)"
 assert "command args" "/test/test1024" "$(docker run --rm entrypoint-demoter-test --match /test/test1024 ls -d /test/test1024)"
 assert "UID" "uid=1000 gid=0(root) groups=0(root)" "$(docker run --rm -e UID=1000 entrypoint-demoter-test id)"
