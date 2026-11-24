@@ -34,9 +34,17 @@ func RunCommandWithListeners(uid uint32, gid uint32, stdinOnTerm string, stdinOn
 		listener.UseStdin(stdinPipe)
 	}
 
-	stdoutPipe, err := command.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("unable to get stdout pipe: %w", err)
+	var stdoutPipe io.ReadCloser
+	if len(listeners) == 0 {
+		// Pass output directly through to avoid losing data when a short-lived
+		// child exits before a separate reader has drained its stdout.
+		command.Stdout = os.Stdout
+	} else {
+		stdoutPipe, err = command.StdoutPipe()
+		if err != nil {
+			return fmt.Errorf("unable to get stdout pipe: %w", err)
+		}
+		defer stdoutPipe.Close()
 	}
 
 	if uid != 0 || gid != 0 {
@@ -48,12 +56,16 @@ func RunCommandWithListeners(uid uint32, gid uint32, stdinOnTerm string, stdinOn
 		return err
 	}
 
-	go FanoutStdout(stdoutPipe, listeners...)
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	setupSignalForwarding(ctx, command, stdinOnTerm, stdinOnTermAnnounce, stdinOnTermDelay, stdinPipe)
+
+	// Wait closes StdoutPipe. Read it to completion first when listeners
+	// are present, including the final line of short-lived processes.
+	if stdoutPipe != nil {
+		FanoutStdout(stdoutPipe, listeners...)
+	}
 
 	err = command.Wait()
 	if err != nil {
@@ -68,6 +80,7 @@ func setupSignalForwarding(ctx context.Context, cmd *exec.Cmd, stdinOnTerm strin
 	signal.Notify(signals, syscall.SIGTERM)
 
 	go func() {
+		defer signal.Stop(signals)
 		for {
 			select {
 			case sig := <-signals:
