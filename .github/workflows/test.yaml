@@ -13,6 +13,19 @@ on:
 jobs:
 
   build:
-    uses: itzg/github-workflows/.github/workflows/go-test.yml@main
+    uses: itzg/github-workflows/.github/workflows/go-test.yml@458a58e2c4d247563ea4bd7da4a28baec2c5f43e # main
     with:
       go-version-file: go.mod
+
+  container-tests:
+    name: Container tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Build and test container
+        run: bash test.sh
