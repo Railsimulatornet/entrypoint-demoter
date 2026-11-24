@@ -84,6 +84,10 @@ bash test.sh
 
 [Makefile](Makefile) und [test.sh](test.sh) enthalten die jeweiligen Aufrufe. Die Containerprüfung baut ein Test-Image und prüft unter anderem Benutzerrechte und Stoppnachrichten.
 
+### Automatische Wartung
+
+Abhängigkeiten werden regelmäßig geprüft. CodeQL untersucht die Go-Quellen unter Linux und Windows sowie die GitHub-Workflows bei Änderungen und wöchentlich. Ein neuer Versions-Tag startet vor der Veröffentlichung zuerst Go-Tests, Containerprüfungen, die Abhängigkeitsprüfung und CodeQL. Schlägt eine Pflichtprüfung fehl, wird kein Release erstellt.
+
 ### Lizenz
 
 [MIT License](LICENSE). Copyright © 2019 Geoff Bourne. Die ursprünglichen Lizenz- und Urheberhinweise gelten auch in diesem Fork.
@@ -166,6 +170,10 @@ bash test.sh
 ```
 
 See [Makefile](Makefile) and [test.sh](test.sh) for the commands. The container checks build a test image and verify user permissions and stop messages, among other cases.
+
+### Automated maintenance
+
+Dependencies are checked regularly. CodeQL analyzes the Go sources on Linux and Windows and the GitHub workflows on changes and weekly. Before publishing a new version tag, the release workflow runs Go tests, container checks, dependency checks and CodeQL. A failed required check prevents publication.
 
 ### License
 
