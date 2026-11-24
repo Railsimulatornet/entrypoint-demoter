@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"strings"
 )
 
 type StdInOutListener interface {
@@ -15,14 +16,22 @@ type StdInOutListener interface {
 }
 
 func FanoutStdout(stdoutPipe io.Reader, listeners ...StdInOutListener) {
-	scanner := bufio.NewScanner(stdoutPipe)
-	for scanner.Scan() {
-		line := scanner.Text()
-		for _, listener := range listeners {
-			listener.HandleStdout(line)
+	reader := bufio.NewReader(stdoutPipe)
+	for {
+		line, err := reader.ReadString('\n')
+		if len(line) > 0 {
+			line = strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
+			for _, listener := range listeners {
+				listener.HandleStdout(line)
+			}
+			fmt.Println(line)
 		}
-		// ...and output to our stdout
-		fmt.Println(line)
+		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				log.WithError(err).Warn("failed to read child stdout")
+			}
+			return
+		}
 	}
 }
 
