@@ -10,6 +10,9 @@ on:
   schedule:
     - cron: 0 4 * * SUN
 
+permissions:
+  contents: read
+
 jobs:
 
   build:
