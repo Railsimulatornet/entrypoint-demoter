@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package entrypoint_demoter
@@ -31,9 +32,13 @@ func ResolveIds(match string) (uint32, uint32, error) {
 func resolveIdPart(idPart string) (uint32, error) {
 	idStr := os.Getenv(idPart)
 	if idStr != "" {
-		desired, err := strconv.Atoi(idStr)
+		desired, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
 			return 0, fmt.Errorf("invalid %s: %w", idPart, err)
+		}
+		// The all-ones ID is reserved by operating-system credential APIs.
+		if desired < 0 || desired >= 1<<32-1 {
+			return 0, fmt.Errorf("invalid %s: outside the supported ID range", idPart)
 		}
 		log.Debugf("Resolved %d from environment variable %s", desired, idPart)
 		return uint32(desired), nil
@@ -42,7 +47,7 @@ func resolveIdPart(idPart string) (uint32, error) {
 	return 0, nil
 }
 
-//noinspection GoUnusedParameter
+// noinspection GoUnusedParameter
 func setCredentials(uid uint32, gid uint32, command *exec.Cmd) {
 	// do nothing, just log
 	log.
